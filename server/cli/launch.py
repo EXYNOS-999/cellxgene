@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import click
 
+from server import __version__
 from server.common.utils import custom_format_warning
 from server.common.utils import find_available_port, is_port_available, sort_options
 from server.common.errors import DatasetAccessError
@@ -197,6 +198,15 @@ def server_args(func):
         "no additional script files will be included.",
         show_default=False,
     )
+    @click.option(
+        "--error-aggregation",
+        default=None,
+        show_default=True,
+        multiple=False,
+        metavar="https://<key>@sentry.io/<project>",
+        help="Optional error aggregation with sentry.io. To activate, pass in your sentry.io Data Source Name."
+             + "For more see https://docs.sentry.io/error-reporting/quickstart/?platform=python#configure-the-sdk",
+    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -278,6 +288,7 @@ def launch(
     diffexp_lfc_cutoff,
     title,
     scripts,
+    error_aggregation,
     about,
     disable_annotations,
     annotations_file,
@@ -309,6 +320,10 @@ def launch(
 
     # Startup message
     click.echo("[cellxgene] Starting the CLI...")
+
+    if error_aggregation:
+        import sentry_sdk
+        sentry_sdk.init(error_aggregation, release=f"cellxgene@{__version__}")
 
     if datapath is None and dataroot is None:
         # TODO:  change the error message once dataroot is fully supported
@@ -420,6 +435,7 @@ def launch(
         anndata_backed=backed,
         disable_diffexp=disable_diffexp,
         enable_reembedding=experimental_enable_reembedding,
+        error_aggregation=error_aggregation,
     )
 
     matrix_data_cache_manager = MatrixDataCacheManager()

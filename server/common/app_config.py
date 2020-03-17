@@ -34,6 +34,7 @@ class AppConfig(object):
         self.disable_diffexp = False
         self.enable_reembedding = False
         self.anndata_backed = False
+        self.error_aggregation = None
 
         # TODO these options may not apply to all datasets in the multi dataset.
         # may need to invent a way to associate these config parameters with
@@ -58,6 +59,7 @@ class AppConfig(object):
             "anndata_backed",
             "disable_diffexp",
             "enable_reembedding",
+            "error_aggregation",
         ]
 
         self.update(inputs, kw)
@@ -108,6 +110,7 @@ class AppConfig(object):
             "backed": self.anndata_backed,
             "disable-diffexp": self.disable_diffexp,
             "enable-reembedding": self.enable_reembedding,
+            "error_aggregation": self.error_aggregation,
             "annotations": False,
             "annotations_file": None,
             "annotations_dir": None,

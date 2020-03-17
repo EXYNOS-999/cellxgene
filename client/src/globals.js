@@ -17,7 +17,11 @@ export const configDefaults = {
   parameters: {
     "max-category-items": 1000,
     "disable-diffexp": false,
-    "diffexp-may-be-slow": false
+    "diffexp-may-be-slow": false,
+    error_aggregation: null,
+  },
+  library_versions: {
+    cellxgene: null,
   },
   links: {}
 };

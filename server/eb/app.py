@@ -1,8 +1,9 @@
 """cellxgene AWS elastic beanstalk application"""
-
 import sys
 import os
 import logging
+
+ERROR_AGGREGATION = os.environ.get('ERROR_AGGREGATION')
 
 if os.path.isdir("/opt/python/log"):
     # This is the standard location where Amazon EC2 instances store the application logs.
@@ -46,6 +47,7 @@ try:
         var_names=None,
         anndata_backed=False,
         disable_diffexp=False,
+        error_aggregation=ERROR_AGGREGATION,
     )
 
     matrix_data_cache_manager = MatrixDataCacheManager()
