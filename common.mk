@@ -16,10 +16,6 @@ export CXG_SERVER_PORT := $(call get_or_else_dev_env_default,CXG_SERVER_PORT)
 export CXG_CLIENT_PORT := $(call get_or_else_dev_env_default,CXG_CLIENT_PORT)
 export JEST_ENV := $(call get_or_else_dev_env_default,JEST_ENV)
 
-export CXG_SERVER_PORT
-export CXG_CLIENT_PORT
-export JEST_ENV
-
 # copy the client assests to a location known to the server
 # $(1) is the source of the client assets
 # $(2) is the destination
