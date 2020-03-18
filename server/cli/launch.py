@@ -10,7 +10,6 @@ from urllib.parse import urlparse
 
 import click
 
-from server import __version__
 from server.common.utils import custom_format_warning
 from server.common.utils import find_available_port, is_port_available, sort_options
 from server.common.errors import DatasetAccessError
@@ -320,10 +319,6 @@ def launch(
 
     # Startup message
     click.echo("[cellxgene] Starting the CLI...")
-
-    if error_aggregation:
-        import sentry_sdk
-        sentry_sdk.init(error_aggregation, release=f"cellxgene@{__version__}")
 
     if datapath is None and dataroot is None:
         # TODO:  change the error message once dataroot is fully supported

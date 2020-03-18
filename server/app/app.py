@@ -10,6 +10,7 @@ from flask_restful import Api, Resource
 
 from http import HTTPStatus
 
+from server import __version__
 import server.common.rest as common_rest
 from server.common.errors import DatasetAccessError
 from server.common.utils import path_join, Float32JSONEncoder
@@ -185,6 +186,10 @@ def get_api_resources(bp_api):
 
 class Server:
     def __init__(self, matrix_data_cache_manager, annotations, app_config):
+
+        if app_config.error_aggregation:
+            import sentry_sdk
+            sentry_sdk.init(app_config.error_aggregation, release=f"cellxgene@{__version__}")
 
         self.app = Flask(__name__, static_folder="../common/web/static")
         self.app.json_encoder = Float32JSONEncoder
