@@ -29,6 +29,7 @@
     "@blueprintjs/icons": "^3.14.0",
     "@blueprintjs/select": "^3.12.0",
     "@sentry/browser": "^5.14.2",
+    "@sentry/webpack-plugin": "^1.10.0",
     "client": "0.0.1",
     "d3": "^4.10.0",
     "d3-scale-chromatic": "^1.5.0",

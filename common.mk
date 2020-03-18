@@ -10,6 +10,8 @@ define get_or_else_dev_env_default
 $(if $($(1)),$($(1)),$(shell sed -n 's/$(1)=\(.*\)/\1/p' < $(PROJECT_ROOT)/environment.default))
 endef
 
+export CELLXGENE_VERSION := $(shell grep 'current_version = ' $(PROJECT_ROOT)/.bumpversion.cfg | sed 's/current_version = //')
+
 export CXG_SERVER_PORT := $(call get_or_else_dev_env_default,CXG_SERVER_PORT)
 export CXG_CLIENT_PORT := $(call get_or_else_dev_env_default,CXG_CLIENT_PORT)
 export JEST_ENV := $(call get_or_else_dev_env_default,JEST_ENV)

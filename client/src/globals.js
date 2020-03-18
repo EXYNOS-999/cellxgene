@@ -20,9 +20,6 @@ export const configDefaults = {
     "diffexp-may-be-slow": false,
     error_aggregation: null,
   },
-  library_versions: {
-    cellxgene: null,
-  },
   links: {}
 };
 

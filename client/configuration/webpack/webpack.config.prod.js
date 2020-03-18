@@ -4,6 +4,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const SWPrecacheWebpackPlugin = require("sw-precache-webpack-plugin");
 const HtmlWebpackInlineSourcePlugin = require("html-webpack-inline-source-plugin");
+const SentryCliPlugin = require("@sentry/webpack-plugin");
 
 const src = path.resolve("src");
 const fonts = path.resolve("src/fonts");
@@ -12,6 +13,24 @@ const nodeModules = path.resolve("node_modules");
 const babelOptions = require("../babel/babel.prod");
 
 const publicPath = "";
+
+let conditionalPlugins = [];
+
+const sentryConfigured = [
+  "SENTRY_URL",
+  "SENTRY_ORG",
+  "SENTRY_PROJECT",
+  "SENTRY_AUTH_TOKEN",
+].map(varName => varName in process.env).reduce((l, r) => l && r);
+
+if (sentryConfigured) conditionalPlugins.push(
+  new SentryCliPlugin({
+    include: ".",
+    ignoreFile: ".sentrycliignore",
+    ignore: ["node_modules", "configuration", "coverage", "__tests__", ".idea"],
+    release: `cellxgene@${process.env.CELLXGENE_VERSION}`
+  })
+);
 
 module.exports = {
   mode: "production",
@@ -89,33 +108,36 @@ module.exports = {
     ]
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      inject: "body",
-      filename: "index.html",
-      template: path.resolve("index_template.html"),
-      favicon: path.resolve("favicon.png"),
-      inlineSource: ".(js|css)$",
-      minify: {
-        removeComments: true,
-        collapseWhitespace: true,
-        removeRedundantAttributes: true,
-        useShortDoctype: true,
-        removeEmptyAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        keepClosingSlash: true,
-        minifyJS: true,
-        minifyCSS: true,
-        minifyURLs: true
-      }
-    }),
-    new HtmlWebpackInlineSourcePlugin(),
-    new MiniCssExtractPlugin({
-      filename: "static/css/[name].[contenthash:8].css"
-    }),
-    new SWPrecacheWebpackPlugin({
-      cacheId: "cellxgene",
-      filename: "service-worker.js"
-    })
+    ...[
+      new HtmlWebpackPlugin({
+        inject: "body",
+        filename: "index.html",
+        template: path.resolve("index_template.html"),
+        favicon: path.resolve("favicon.png"),
+        inlineSource: ".(js|css)$",
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeRedundantAttributes: true,
+          useShortDoctype: true,
+          removeEmptyAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          keepClosingSlash: true,
+          minifyJS: true,
+          minifyCSS: true,
+          minifyURLs: true
+        }
+      }),
+      new HtmlWebpackInlineSourcePlugin(),
+      new MiniCssExtractPlugin({
+        filename: "static/css/[name].[contenthash:8].css"
+      }),
+      new SWPrecacheWebpackPlugin({
+        cacheId: "cellxgene",
+        filename: "service-worker.js"
+      }),
+    ],
+    ...conditionalPlugins
   ],
   performance: {
     maxEntrypointSize: 2000000,

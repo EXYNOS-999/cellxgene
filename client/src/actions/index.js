@@ -118,7 +118,6 @@ const doInitialDataLoad = () =>
       if (config.parameters.error_aggregation) {
         Sentry.init({
           dsn: config.parameters.error_aggregation,
-          release: `cellxgene@${config.library_versions.cellxgene}`
         });
       }
       const schema = stepOneResults[1];
