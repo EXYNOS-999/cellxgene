@@ -33,6 +33,9 @@ single_dataset:
   about: null
   title: null
 
+display:
+  colors_file: null
+
 user_annotations:
   enable: true
   type: local_file_csv

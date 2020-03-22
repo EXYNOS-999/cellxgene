@@ -64,6 +64,7 @@ class AppConfig(object):
             self.user_annotations__local_file_csv__file = dc["user_annotations"]["local_file_csv"]["file"]
             self.user_annotations__ontology__enable = dc["user_annotations"]["ontology"]["enable"]
             self.user_annotations__ontology__obo_location = dc["user_annotations"]["ontology"]["obo_location"]
+            self.display__colors_file = dc["display"]["colors_file"]
             self.presentation__max_categories = dc["presentation"]["max_categories"]
             self.embeddings__names = dc["embeddings"]["names"]
             self.embeddings__enable_reembedding = dc["embeddings"]["enable_reembedding"]
@@ -79,6 +80,9 @@ class AppConfig(object):
 
         # Set to true when config_completed is called
         self.is_completed = False
+
+        # Colors config file is loaded on self.handle_display
+        self.display__colors_config = None
 
     def update_from_config_file(self, config_file):
         with open(config_file) as fyaml:
@@ -137,6 +141,7 @@ class AppConfig(object):
         self.handle_single_dataset(context)
         self.handle_multi_dataset(context)
         self.handle_user_annotations(context)
+        self.handle_display(context)
         self.handle_embeddings(context)
         self.handle_diffexp(context)
         self.handle_adaptor(context)
@@ -190,6 +195,13 @@ class AppConfig(object):
 
     def handle_presentation(self, context):
         self.__check_attr("presentation__max_categories", int)
+
+    def handle_display(self, context):
+        self.__check_attr("display__colors_file", (str, type(None)))
+        if self.display__colors_file:
+            print(self.display__colors_file)
+            with open(self.display__colors_file, 'r') as fh:
+                self.display__colors_config = yaml.load(fh.read(), Loader=yaml.Loader)
 
     def handle_single_dataset(self, context):
         self.__check_attr("single_dataset__datapath", (str, type(None)))

@@ -144,7 +144,7 @@ def dataset_args(func):
         "--about",
         default=DEFAULT_CONFIG.single_dataset__about,
         metavar="<URL>",
-        help="URL providing more information about the dataset " "(hint: must be a fully specified absolute URL).",
+        help="URL providing more information about the dataset (hint: must be a fully specified absolute URL).",
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -204,7 +204,24 @@ def server_args(func):
     return wrapper
 
 
+def display_args(func):
+    @click.option(
+        "--colors-file",
+        default=DEFAULT_CONFIG.display__colors_file,
+        show_default=True,
+        multiple=False,
+        metavar="<path>",
+        help="Optional YAML file specifying the colors used for each category-label pair and continuous variables.",
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 def launch_args(func):
+    @display_args
     @annotation_args
     @config_args
     @dataset_args
@@ -291,6 +308,7 @@ def launch(
     title,
     scripts,
     about,
+    colors_file,
     disable_annotations,
     annotations_file,
     annotations_dir,
@@ -353,6 +371,7 @@ def launch(
             user_annotations__local_file_csv__directory=annotations_dir,
             user_annotations__ontology__enable=experimental_annotations_ontology,
             user_annotations__ontology__obo_location=experimental_annotations_ontology_obo,
+            display__colors_file=colors_file,
             presentation__max_categories=max_category_items,
             embeddings__names=embedding,
             embeddings__enable_reembedding=experimental_enable_reembedding,

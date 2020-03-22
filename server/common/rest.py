@@ -2,6 +2,7 @@ import sys
 from http import HTTPStatus
 import copy
 import logging
+import re
 from flask import make_response, jsonify, current_app, abort
 from server.common.constants import Axis, DiffExpMode, JSON_NaN_to_num_warning_msg
 from server.common.errors import (
@@ -131,6 +132,22 @@ def data_var_put(request, data_adaptor):
         )
     except FilterError as e:
         return abort_and_log(HTTPStatus.BAD_REQUEST, str(e), include_exc_info=True)
+
+
+def colors_obs_get(app_config, data_adaptor):
+    return _color_gets('observations', app_config, data_adaptor)
+
+
+def colors_var_get(app_config, data_adaptor):
+    return _color_gets('variables', app_config, data_adaptor)
+
+
+def _color_gets(conf_type, app_config, data_adaptor):
+    filename = re.sub(f"/$", "", data_adaptor.get_location()).split("/")[-1]
+    color_config_for_file = app_config.display__colors_config.get(filename)
+    if not color_config_for_file or not color_config_for_file.get(conf_type):
+        return make_response(None, HTTPStatus.NOT_FOUND)
+    return make_response(jsonify(color_config_for_file[conf_type]), HTTPStatus.OK)
 
 
 def diffexp_obs_post(request, data_adaptor):
