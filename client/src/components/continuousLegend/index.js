@@ -2,8 +2,9 @@
 import React from "react";
 import { connect } from "react-redux";
 import * as d3 from "d3";
-import { interpolateCool } from "d3-scale-chromatic";
 import * as globals from "../../globals";
+import { ColorHelpers } from "../../util/stateManager";
+import * as _ from "lodash";
 
 // create continuous color legend
 // http://bl.ocks.org/syntagmatic/e8ccca52559796be775553b467593a9f
@@ -101,6 +102,7 @@ const continuous = (selectorId, colorscale, colorAccessor) => {
 @connect(state => ({
   colorAccessor: state.colors.colorAccessor,
   colorScale: state.colors.scale,
+  userColors: state.colors.userColors,
   responsive: state.responsive
 }))
 class ContinuousLegend extends React.Component {
@@ -110,7 +112,7 @@ class ContinuousLegend extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const { colorAccessor, responsive, colorScale } = this.props;
+    const { colorAccessor, responsive, colorScale, userColors } = this.props;
     if (
       prevProps.colorAccessor !== colorAccessor ||
       prevProps.colorScale !== colorScale ||
@@ -122,13 +124,13 @@ class ContinuousLegend extends React.Component {
         .selectAll("*")
         .remove();
     }
-
+    const interpolationFunction = ColorHelpers.getInterpolationFunction(_.get(userColors, colorAccessor));
     if (colorAccessor && colorScale && colorScale.range) {
       /* fragile! continuous range is 0 to 1, not [#fa4b2c, ...], make this a flag? */
       if (colorScale.range()[0][0] !== "#") {
         continuous(
           "#continuous_legend",
-          d3.scaleSequential(interpolateCool).domain(colorScale.domain()),
+          d3.scaleSequential(interpolationFunction).domain(colorScale.domain()),
           colorAccessor
         );
       }
