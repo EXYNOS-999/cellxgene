@@ -10,11 +10,12 @@ import { Button, ButtonGroup, Tooltip } from "@blueprintjs/core";
 import { connect } from "react-redux";
 import * as d3 from "d3";
 import memoize from "memoize-one";
-import { interpolateCool } from "d3-scale-chromatic";
+import * as _ from "lodash";
 import * as globals from "../../globals";
 import actions from "../../actions";
 import { histogramContinuous } from "../../util/dataframe/histogram";
 import { makeContinuousDimensionName } from "../../util/nameCreators";
+import { ColorHelpers } from "../../util/stateManager";
 
 @connect((state, ownProps) => {
   const { isObs, isUserDefined, isDiffExp, field } = ownProps;
@@ -27,7 +28,8 @@ import { makeContinuousDimensionName } from "../../util/nameCreators";
     scatterplotXXaccessor: state.controls.scatterplotXXaccessor,
     scatterplotYYaccessor: state.controls.scatterplotYYaccessor,
     continuousSelectionRange: state.continuousSelection[myName],
-    colorAccessor: state.colors.colorAccessor
+    colorAccessor: state.colors.colorAccessor,
+    userColors: state.colors.userColors,
   };
 })
 class HistogramBrush extends React.PureComponent {
@@ -251,13 +253,14 @@ class HistogramBrush extends React.PureComponent {
   };
 
   handleColorAction = () => {
-    const { dispatch, field, world, ranges } = this.props;
+    const { dispatch, field, world, ranges, userColors } = this.props;
 
     if (world.obsAnnotations.hasCol(field)) {
       dispatch({
         type: "color by continuous metadata",
         colorAccessor: field,
-        rangeForColorAccessor: ranges
+        rangeForColorAccessor: ranges,
+        colors: _.get(userColors, field)
       });
     } else if (world.varData.hasCol(field)) {
       dispatch(actions.requestSingleGeneExpressionCountsForColoringPOST(field));
@@ -305,6 +308,7 @@ class HistogramBrush extends React.PureComponent {
   }
 
   renderHistogram(histogram, field, colorAccessor) {
+    const { userColors } = this.props;
     const { x, y, bins, svgRef, binStart, binEnd, binWidth } = histogram;
     const svg = d3.select(svgRef);
 
@@ -319,7 +323,8 @@ class HistogramBrush extends React.PureComponent {
       .attr("class", "histogram-container")
       .attr("transform", `translate(${this.marginLeft},${this.marginTop})`);
 
-    const colorScale = d3.scaleSequential(interpolateCool).domain([0, bins.length]);
+    const interpolationFunction = ColorHelpers.getInterpolationFunction(_.get(userColors, field));
+    const colorScale = d3.scaleSequential(interpolationFunction).domain([0, bins.length]);
 
     const histogramScale = d3
       .scaleLinear()

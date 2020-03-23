@@ -17,12 +17,14 @@ export const configDefaults = {
   parameters: {
     "max-category-items": 1000,
     "disable-diffexp": false,
-    "diffexp-may-be-slow": false
+    "diffexp-may-be-slow": false,
+    color_config: false
   },
   links: {}
 };
 
 /* colors */
+export const defaultColormap = "cool";
 export const blue = Colors.BLUE3;
 export const linkBlue = Colors.BLUE5;
 export const lightestGrey = "rgb(249,249,249)";

@@ -10,10 +10,25 @@ import {
 import { requestReembed, reembedResetWorldToUniverse } from "./reembed";
 
 /*
+scratch
+  const colorConfig = fetchColors ? await fetchJson("colors/obs") : {};
+                colors: _.get(colorConfig, col.name, null),
+                name: col.name
+
+export const updateStateColors = (oldState, dim, name, colors) => {
+  let newStateColors = oldState ? oldState.colors : undefined;
+  if (!colors) return { colors: newStateColors };
+  if (!newStateColors) newStateColors = {};
+  if (!newStateColors[dim]) newStateColors[dim] = {};
+  newStateColors[dim][name] = colors;
+  return { colors: newStateColors };
+};
+ */
+/*
 return promise to fetch the OBS annotations we need to load.  Omit anything
 we don't need.
 */
-function obsAnnotationFetchAndLoad(dispatch, schema) {
+async function obsAnnotationFetchAndLoad(dispatch, schema) {
   const obsAnnotations = schema?.schema?.annotations?.obs ?? {};
   const columns = obsAnnotations.columns ?? [];
   const index = obsAnnotations.index ?? false;
@@ -21,21 +36,17 @@ function obsAnnotationFetchAndLoad(dispatch, schema) {
     columns
       .filter(col => col.name !== index)
       .map(col => {
-        const path = `annotations/obs?annotation-name=${encodeURIComponent(
-          col.name
-        )}`;
-        const url = `${globals.API.prefix}${globals.API.version}${path}`;
-        return doBinaryRequest(url);
-      })
-      .map(rqst => rqst.then(buffer => Universe.matrixFBSToDataframe(buffer)))
-      .map(resp =>
-        resp.then(df =>
-          dispatch({
-            type: "universe: column load success",
-            dim: "obsAnnotations",
-            dataframe: df
-          })
-        )
+          const path = `annotations/obs?annotation-name=${encodeURIComponent(col.name)}`;
+          return fetchBinary(path)
+            .then(buffer => Universe.matrixFBSToDataframe(buffer))
+            .then(df =>
+              dispatch({
+                type: "universe: column load success",
+                dim: "obsAnnotations",
+                dataframe: df
+              })
+            )
+        }
       )
   );
 }
@@ -43,28 +54,24 @@ function obsAnnotationFetchAndLoad(dispatch, schema) {
 /*
 return promise fetching VAR annotations we need to load.  Only index is currently used.
 */
-function varAnnotationFetchAndLoad(dispatch, schema) {
+async function varAnnotationFetchAndLoad(dispatch, schema) {
   const varAnnotations = schema?.schema?.annotations?.var ?? {};
   const index = varAnnotations.index ?? false;
   const names = index ? [index] : [];
   return Promise.all(
     names
       .map(name => {
-        const path = `annotations/var?annotation-name=${encodeURIComponent(
-          name
-        )}`;
-        const url = `${globals.API.prefix}${globals.API.version}${path}`;
-        return doBinaryRequest(url);
-      })
-      .map(rqst => rqst.then(buffer => Universe.matrixFBSToDataframe(buffer)))
-      .map(resp =>
-        resp.then(df =>
-          dispatch({
-            type: "universe: column load success",
-            dim: "varAnnotations",
-            dataframe: df
-          })
-        )
+          const path = `annotations/var?annotation-name=${encodeURIComponent(name)}`;
+          return fetchBinary(path)
+            .then(buffer => Universe.matrixFBSToDataframe(buffer))
+            .then(df =>
+              dispatch({
+                type: "universe: column load success",
+                dim: "varAnnotations",
+                dataframe: df
+              })
+            );
+        }
       )
   );
 }
@@ -72,24 +79,29 @@ function varAnnotationFetchAndLoad(dispatch, schema) {
 /*
 return promise fetching layout we need
 */
-function layoutFetchAndLoad(dispatch) {
-  return Promise.all(
-    ["layout/obs"]
-      .map(path => {
-        const url = `${globals.API.prefix}${globals.API.version}${path}`;
-        return doBinaryRequest(url);
+async function layoutFetchAndLoad(dispatch) {
+  return fetchBinary("layout/obs")
+    .then(buffer => Universe.matrixFBSToDataframe(buffer))
+    .then(df =>
+        dispatch({
+          type: "universe: column load success",
+          dim: "obsLayout",
+          dataframe: df
+        })
+    );
+}
+
+/*
+return promise fetching user-configured colors
+*/
+async function userColorsFetchAndLoad(dispatch) {
+  return fetchJson("colors")
+    .then(userColors =>
+      dispatch({
+        type: "universe: user color load success",
+        userColors
       })
-      .map(rqst => rqst.then(buffer => Universe.matrixFBSToDataframe(buffer)))
-      .map(resp =>
-        resp.then(df =>
-          dispatch({
-            type: "universe: column load success",
-            dim: "obsLayout",
-            dataframe: df
-          })
-        )
-      )
-  );
+    );
 }
 
 /*
@@ -107,13 +119,10 @@ const doInitialDataLoad = () =>
       /*
       Step 1 - config & schema, all JSON
       */
-      const requestJson = ["config", "schema"]
-        .map(r => `${globals.API.prefix}${globals.API.version}${r}`)
-        .map(url => doJsonRequest(url));
-      const stepOneResults = await Promise.all(requestJson);
+      const requestJson = ["config", "schema"].map(fetchJson);
+      const [responseConfig, schema] = await Promise.all(requestJson);
       /* set config defaults */
-      const config = { ...globals.configDefaults, ...stepOneResults[0].config };
-      const schema = stepOneResults[1];
+      const config = { ...globals.configDefaults, ...responseConfig.config };
       const universe = Universe.createUniverseFromResponse(config, schema);
       dispatch({
         type: "universe exists, but loading is still in progress",
@@ -128,14 +137,15 @@ const doInitialDataLoad = () =>
       Step 2 - load the minimum stuff required to display.
       */
       await Promise.all([
+        userColorsFetchAndLoad(dispatch),
         layoutFetchAndLoad(dispatch),
-        varAnnotationFetchAndLoad(dispatch, schema)
+        varAnnotationFetchAndLoad(dispatch, schema, config.parameters.color_config)
       ]);
 
       /*
       Step 3 - load everything else
       */
-      await obsAnnotationFetchAndLoad(dispatch, schema);
+      await obsAnnotationFetchAndLoad(dispatch, schema, config.parameters.color_config);
 
       dispatch({
         type: "initial data load complete (universe exists)",
@@ -447,6 +457,14 @@ const saveObsAnnotations = () => async (dispatch, getState) => {
     });
   }
 };
+
+function fetchJson(pathAndQuery) {
+  return doJsonRequest(`${globals.API.prefix}${globals.API.version}${pathAndQuery}`);
+}
+
+function fetchBinary(pathAndQuery) {
+  return doBinaryRequest(`${globals.API.prefix}${globals.API.version}${pathAndQuery}`);
+}
 
 export default {
   doInitialDataLoad,

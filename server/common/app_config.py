@@ -406,6 +406,7 @@ class AppConfig(object):
             "backed": self.adaptor__anndata_adaptor__backed,
             "disable-diffexp": not self.diffexp__enable,
             "enable-reembedding": self.embeddings__enable_reembedding,
+            "color_config": self.display__colors_file is not None,
             "annotations": False,
             "annotations_file": None,
             "annotations_dir": None,

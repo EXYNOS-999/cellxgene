@@ -2,7 +2,13 @@
 Helper functions for the embedded graph colors
 */
 import * as d3 from "d3";
-import { interpolateRainbow, interpolateCool } from "d3-scale-chromatic";
+import {
+  interpolateRainbow,
+  interpolateCool,
+  interpolateInferno,
+  interpolateViridis,
+  interpolateCividis
+} from "d3-scale-chromatic";
 import * as globals from "../../globals";
 import parseRGB from "../parseRGB";
 import finiteExtent from "../finiteExtent";
@@ -15,16 +21,19 @@ create new colors state object.   Paramters:
     "color by continuous metadata", "color by categorical metadata"
   -
 */
-export function createColors(world, colorMode = null, colorAccessor = null) {
+export function createColors(world, colorMode = null, colorAccessor = null, userColors = null) {
   switch (colorMode) {
     case "color by categorical metadata": {
+      if (userColors) {
+        return parseUserColors(world, colorAccessor, userColors)
+      }
       return createColorsByCategoricalMetadata(world, colorAccessor);
     }
     case "color by continuous metadata": {
-      return createColorsByContinuousMetadata(world, colorAccessor);
+      return createColorsByContinuousMetadata(world, colorAccessor, getInterpolationFunction(userColors));
     }
     case "color by expression": {
-      return createColorsByExpression(world, colorAccessor);
+      return createColorsByExpression(world, colorAccessor, getInterpolationFunction(userColors));
     }
     default: {
       const defaultCellColor = parseRGB(globals.defaultCellColor);
@@ -34,6 +43,49 @@ export function createColors(world, colorMode = null, colorAccessor = null) {
       };
     }
   }
+}
+
+export const getInterpolationFunction = colors => {
+  switch (colors) {
+    case "civiridis": {
+      return interpolateCividis;
+    }
+    case "inferno": {
+      return interpolateInferno;
+    }
+    case "viridis": {
+      return interpolateViridis;
+    }
+    case "rainbow": {
+      return interpolateRainbow;
+    }
+    default: {
+      return interpolateCool;
+    }
+  }
+};
+
+function parseUserColors(world, accessor, userColors) {
+  const { categories } = world.schema.annotations.obsByName[accessor];
+
+  /* pre-create colors - much faster than doing it for each obs */
+  const [colors, scaleMap] = categories.reduce((acc, cat, i) => {
+    const color = parseRGB(userColors[cat]);
+    acc[0][cat] = color;
+    acc[1][i] = d3.rgb(255 * color[0], 255 * color[1], 255 * color[2]);
+    return acc;
+  }, [{}, {}]);
+
+  const scale = i => scaleMap[i];
+
+  const rgb = new Array(world.nObs);
+  const df = world.obsAnnotations;
+  const data = df.col(accessor).asArray();
+  for (let i = 0, len = df.length; i < len; i += 1) {
+    const cat = data[i];
+    rgb[i] = colors[cat];
+  }
+  return { rgb, scale };
 }
 
 function createColorsByCategoricalMetadata(world, accessor) {
@@ -59,7 +111,7 @@ function createColorsByCategoricalMetadata(world, accessor) {
   return { rgb, scale };
 }
 
-function createColorsByContinuousMetadata(world, accessor) {
+function createColorsByContinuousMetadata(world, accessor, interpolationFunction) {
   const colorBins = 100;
   const col = world.obsAnnotations.col(accessor);
   const { min, max } = col.summarize();
@@ -71,7 +123,7 @@ function createColorsByContinuousMetadata(world, accessor) {
   /* pre-create colors - much faster than doing it for each obs */
   const colors = new Array(colorBins);
   for (let i = 0; i < colorBins; i += 1) {
-    colors[i] = parseRGB(interpolateCool(i / colorBins));
+    colors[i] = parseRGB(interpolationFunction(i / colorBins));
   }
 
   const nonFiniteColor = parseRGB(globals.nonFiniteCellColor);
@@ -89,7 +141,7 @@ function createColorsByContinuousMetadata(world, accessor) {
   return { rgb, scale };
 }
 
-function createColorsByExpression(world, accessor) {
+function createColorsByExpression(world, accessor, interpolationFunction) {
   const expression = world.varData.col(accessor).asArray();
   const colorBins = 100;
   const [min, max] = finiteExtent(expression);
@@ -101,7 +153,7 @@ function createColorsByExpression(world, accessor) {
   /* pre-create colors - much faster than doing it for each obs */
   const colors = new Array(colorBins);
   for (let i = 0; i < colorBins; i += 1) {
-    colors[i] = parseRGB(interpolateCool(i / colorBins));
+    colors[i] = parseRGB(interpolationFunction(i / colorBins));
   }
   const nonFiniteColor = parseRGB(globals.nonFiniteCellColor);
 
